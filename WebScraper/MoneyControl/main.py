@@ -16,5 +16,5 @@ for news_item in news_section.find_all('h3', class_='related_des'):
 for i, headline in enumerate(news_headlines, start=1):
     print(f"{i}. {headline}")
 
-data = {'Date': ['2024-08-27'],
+data = {'Date': ['2024-08-28'],
         'Headlines': news_headlines}

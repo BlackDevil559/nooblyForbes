@@ -1,0 +1,17 @@
+Here’s a list of common stock symbols and their respective companies:
+
+AAPL - Apple Inc.
+MSFT - Microsoft Corporation
+GOOGL - Alphabet Inc. (Google, Class A shares)
+AMZN - Amazon.com Inc.
+TSLA - Tesla Inc.
+FB - Meta Platforms Inc. (formerly Facebook)
+NFLX - Netflix Inc.
+NVDA - NVIDIA Corporation
+IBM - International Business Machines Corporation
+ORCL - Oracle Corporation
+AMD - Advanced Micro Devices Inc.
+INTC - Intel Corporation
+PYPL - PayPal Holdings Inc.
+CSCO - Cisco Systems Inc.
+CRM - Salesforce.com Inc.

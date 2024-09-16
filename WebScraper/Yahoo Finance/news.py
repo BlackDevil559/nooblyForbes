@@ -2,7 +2,7 @@
 
 from stocknews import StockNews
 ...
-stocks = ['AAPL', 'MSFT', 'NFLX']
+stocks = ['AAPL']
 sn = StockNews(stocks, wt_key='MY_WORLD_TRADING_DATA_KEY')
 df = sn.summarize()
 

@@ -46,4 +46,7 @@ pip install -r requirements.txt
 ## References-
 (1) https://medium.com/codepubcast/ml-bloomberg-and-python-c82332157468
 
+(2) For Fetching Data- https://github.com/Nasdaq/NasdaqCloudDataService-REST-API
+
+(3) 013d62a13c933336f7ac75182057a0818738d1b3
 
