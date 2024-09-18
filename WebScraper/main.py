@@ -145,26 +145,27 @@ class StockNewsAggregator:
         self.stock = stock
         self.api_keys = api_keys
         self.sources = [
-            AlphaVantageNews(stock, api_keys['alphavantage']),
-            CNBCNews(stock, api_keys['cnbc']),
-            FinnhubNews(stock, api_keys['finnhub']),
-            MarketauxNews(stock, api_keys['marketaux']),
-            NewsAPI(stock, api_keys['newsapi']),
-            SeekingAlphaNews(stock, api_keys['seekingalpha']),
-            ReutersNews(stock, api_keys['reuters'])
+            ("AlphaVantage", AlphaVantageNews(stock, api_keys['alphavantage'])),
+            ("CNBC", CNBCNews(stock, api_keys['cnbc'])),
+            ("Finnhub", FinnhubNews(stock, api_keys['finnhub'])),
+            ("Marketaux", MarketauxNews(stock, api_keys['marketaux'])),
+            ("NewsAPI", NewsAPI(stock, api_keys['newsapi'])),
+            ("Seeking Alpha", SeekingAlphaNews(stock, api_keys['seekingalpha'])),
+            ("Reuters", ReutersNews(stock, api_keys['reuters']))
         ]
 
     def fetch_all_news(self):
         all_news = []
-        for source in self.sources:
+        for source_name, source in self.sources:
             news = source.get_news()
             if news:
-                all_news.extend(news)
+                # Append the source name to each news item
+                all_news.extend([(source_name, article[0], article[1]) for article in news])
         return all_news if all_news else ["No news available for this stock."]
 
 # Main Code to Run Aggregator
 if __name__ == "__main__":
-    stock_name = 'AAPL'  # Change to the required stock symbol
+    stock_name = 'MSFT'  # Change to the required stock symbol
     api_keys = {
         'alphavantage': 'K8SCLOBSJSHO4OTJ',
         'cnbc': '2ea2e9c90emsh023fc8de0ef582ep168d1fjsne981a8300d92',
@@ -178,7 +179,8 @@ if __name__ == "__main__":
     aggregator = StockNewsAggregator(stock_name, api_keys)
     news = aggregator.fetch_all_news()
 
-    for title, summary in news:
+    for source, title, summary in news:
+        print(f"Source: {source}")
         print(f"Title: {title}")
         print(f"Summary: {summary}")
         print("-" * 80)

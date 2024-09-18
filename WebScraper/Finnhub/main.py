@@ -4,7 +4,7 @@ import json
 # Your API key (replace 'your_token_here' with your actual API token)
 stock="AAPL"
 # API endpoint URL
-url = f"https://finnhub.io/api/v1/company-news?symbol={stock}&from=2023-08-15&to=2023-08-20&token=crjtc51r01qnnbrt3h8gcrjtc51r01qnnbrt3h90"
+url = f"https://finnhub.io/api/v1/company-news?symbol={stock}&from=2023-08-15&to=2023-08-20&token=crlb5ahr01qhc7mk6o10crlb5ahr01qhc7mk6o1g"
 
 # Send GET request to the API
 response = requests.get(url)
