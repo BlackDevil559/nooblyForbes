@@ -1,6 +1,6 @@
 import requests
 import json
-
+import http.client
 # Alpha Vantage News Class
 class AlphaVantageNews:
     def __init__(self, stock, api_key):
@@ -13,9 +13,8 @@ class AlphaVantageNews:
             r = requests.get(self.url)
             data = r.json()
             if 'feed' in data:
-                return [(article['title'], article['summary']) for article in data['feed']]
-            else:
-                return []
+                return [f"Source: AlphaVantage - News: {article.get('title', 'No title')} - {article.get('summary', 'No summary')}" for article in data['feed']]
+            return ["No news available from AlphaVantage."]
         except Exception as e:
             print(f"Error fetching data from AlphaVantage: {e}")
             return []
@@ -36,9 +35,9 @@ class CNBCNews:
             response = requests.get(self.url, headers=self.headers, params=self.querystring)
             data = response.json()
             if 'data' in data and 'symbolEntries' in data['data']:
-                return [(article.get('headline'), article.get('url')) for article in data['data']['symbolEntries']['results']]
-            else:
-                return []
+                articles = data['data']['symbolEntries']['results']
+                return [f"Source: CNBC - News: {article.get('headline', 'No headline')}" for article in articles]
+            return ["No news available from CNBC."]
         except Exception as e:
             print(f"Error fetching data from CNBC: {e}")
             return []
@@ -54,8 +53,8 @@ class FinnhubNews:
             response = requests.get(self.url)
             if response.status_code == 200:
                 data = response.json()
-                return [(article.get('headline'), article.get('url')) for article in data]
-            return []
+                return [f"Source: Finnhub - News: {article.get('headline', 'No headline')} - {article.get('url', 'No URL')}" for article in data]
+            return ["No news available from Finnhub."]
         except Exception as e:
             print(f"Error fetching data from Finnhub: {e}")
             return []
@@ -71,8 +70,8 @@ class MarketauxNews:
             response = requests.get(self.url)
             if response.status_code == 200:
                 data = response.json()
-                return [(article.get("title", "No title"), article.get("description", "No description")) for article in data.get("data", [])]
-            return []
+                return [f"Source: Marketaux - News: {article.get('title', 'No title')} - {article.get('description', 'No description')}" for article in data.get("data", [])]
+            return ["No news available from Marketaux."]
         except Exception as e:
             print(f"Error fetching data from Marketaux: {e}")
             return []
@@ -95,8 +94,8 @@ class NewsAPI:
             response = requests.get(self.url, params=querystring)
             data = response.json()
             if 'articles' in data:
-                return [(article['title'], article['url']) for article in data['articles']]
-            return []
+                return [f"Source: NewsAPI - News: {article.get('title', 'No title')} - {article.get('url', 'No URL')}" for article in data['articles']]
+            return ["No news available from NewsAPI."]
         except Exception as e:
             print(f"Error fetching data from NewsAPI: {e}")
             return []
@@ -115,7 +114,7 @@ class SeekingAlphaNews:
         try:
             conn = requests.get(self.url, headers=self.headers)
             data = conn.json()
-            return [(article.get('title', "No title"), article.get('summary', "No summary")) for article in data.get('data', [])]
+            return [f"Source: Seeking Alpha - News: {article.get('title', 'No title')} - {article.get('summary', 'No summary')}" for article in data.get('data', [])]
         except Exception as e:
             print(f"Error fetching data from Seeking Alpha: {e}")
             return []
@@ -128,44 +127,44 @@ class ReutersNews:
             'x-rapidapi-key': api_key,
             'x-rapidapi-host': "reuters-business-and-financial-news.p.rapidapi.com"
         }
-        self.url = f"https://reuters-business-and-financial-news.p.rapidapi.com/get-articles-by-keyword-name/{self.stock}/0/20"
+        self.conn = http.client.HTTPSConnection("reuters-business-and-financial-news.p.rapidapi.com")
+        self.url = f"/get-articles-by-keyword-name/{self.stock}/0/20"
 
     def get_news(self):
         try:
-            response = requests.get(self.url, headers=self.headers)
-            data = response.json()
-            return [(article.get('title', "No title"), article.get('url', "No URL")) for article in data.get('articles', [])]
+            # Sending the GET request
+            self.conn.request("GET", self.url, headers=self.headers)
+            
+            # Getting the response
+            res = self.conn.getresponse()
+            data = res.read()
+            
+            # Decoding the response
+            decoded_data = data.decode("utf-8")
+            
+            # Parsing the JSON data
+            json_data = json.loads(decoded_data)
+            
+            # Extracting articles and handling empty response
+            articles = json_data.get('articles', [])
+            if not articles:
+                return ["No articles found for this stock."]
+
+            # Formatting the articles
+            return [f"Source: Reuters - News: {article.get('articlesName', 'No article name')}" for article in articles]
+        
+        except json.JSONDecodeError:
+            print("Failed to parse JSON data. Raw response:")
+            print(decoded_data)
+            return ["Error parsing the data."]
+        
         except Exception as e:
             print(f"Error fetching data from Reuters: {e}")
-            return []
+            return [f"Error fetching news: {e}"]
 
-# StockNews Aggregator Class
-class StockNewsAggregator:
-    def __init__(self, stock, api_keys):
-        self.stock = stock
-        self.api_keys = api_keys
-        self.sources = [
-            ("AlphaVantage", AlphaVantageNews(stock, api_keys['alphavantage'])),
-            ("CNBC", CNBCNews(stock, api_keys['cnbc'])),
-            ("Finnhub", FinnhubNews(stock, api_keys['finnhub'])),
-            ("Marketaux", MarketauxNews(stock, api_keys['marketaux'])),
-            ("NewsAPI", NewsAPI(stock, api_keys['newsapi'])),
-            ("Seeking Alpha", SeekingAlphaNews(stock, api_keys['seekingalpha'])),
-            ("Reuters", ReutersNews(stock, api_keys['reuters']))
-        ]
-
-    def fetch_all_news(self):
-        all_news = []
-        for source_name, source in self.sources:
-            news = source.get_news()
-            if news:
-                # Append the source name to each news item
-                all_news.extend([(source_name, article[0], article[1]) for article in news])
-        return all_news if all_news else ["No news available for this stock."]
-
-# Main Code to Run Aggregator
+# Main Code to Run News Collection Individually
 if __name__ == "__main__":
-    stock_name = 'MSFT'  # Change to the required stock symbol
+    stock_name = 'Apple'  # Change to the required stock symbol
     api_keys = {
         'alphavantage': 'K8SCLOBSJSHO4OTJ',
         'cnbc': '2ea2e9c90emsh023fc8de0ef582ep168d1fjsne981a8300d92',
@@ -176,11 +175,16 @@ if __name__ == "__main__":
         'reuters': '2ea2e9c90emsh023fc8de0ef582ep168d1fjsne981a8300d92'
     }
 
-    aggregator = StockNewsAggregator(stock_name, api_keys)
-    news = aggregator.fetch_all_news()
+    # Fetching news from individual sources
+    alphavantage_news = AlphaVantageNews(stock_name, api_keys['alphavantage']).get_news()
+    cnbc_news = CNBCNews(stock_name, api_keys['cnbc']).get_news()
+    # finnhub_news = FinnhubNews(stock_name, api_keys['finnhub']).get_news()
+    marketaux_news = MarketauxNews(stock_name, api_keys['marketaux']).get_news()
+    newsapi_news = NewsAPI(stock_name, api_keys['newsapi']).get_news()
+    seekingalpha_news = SeekingAlphaNews(stock_name, api_keys['seekingalpha']).get_news()
+    reuters_news = ReutersNews(stock_name, api_keys['reuters']).get_news()
 
-    for source, title, summary in news:
-        print(f"Source: {source}")
-        print(f"Title: {title}")
-        print(f"Summary: {summary}")
-        print("-" * 80)
+    # Print results from each source
+    all_news = reuters_news
+    for news in all_news:
+        print(news)
