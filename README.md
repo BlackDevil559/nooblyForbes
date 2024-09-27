@@ -50,3 +50,6 @@ pip install -r requirements.txt
 
 (3) 013d62a13c933336f7ac75182057a0818738d1b3
 
+(4) Twitter Client ID - QjctaVpPclRyTUNyQWZ5SFJNbFM6MTpjaQ
+
+(5) Twitter Client Secret - e2t6CWeKQUA2Ikt6poKcifkQnYjNYqdp7TSeYYl5amzeZhd6Q7

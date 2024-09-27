@@ -18,7 +18,8 @@ stock_symbols = {
     "Intel": "INTC",
     "PayPal": "PYPL",
     "Cisco": "CSCO",
-    "Salesforce": "CRM"
+    "Salesforce": "CRM",
+    "Reliance":"RELIANCE"
 }
 
 # Alpha Vantage News Class
