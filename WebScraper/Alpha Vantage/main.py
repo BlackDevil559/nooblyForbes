@@ -1,6 +1,7 @@
 import requests
 stock ="AAPL"
 url = f'https://www.alphavantage.co/query?function=NEWS_SENTIMENT&tickers={stock}&apikey=K8SCLOBSJSHO4OTJ'
+print(url)
 r = requests.get(url)
 data = r.json()
 

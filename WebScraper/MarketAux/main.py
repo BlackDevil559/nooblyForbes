@@ -3,7 +3,7 @@ import json
 
 # Your API token
 api_token = "U4E0cK4uKeLtv1KcnUZlwW3bwr5RuV8y8IVJAEzx"
-stock ="MSFT"
+stock ="AAPL"
 # API endpoint URL
 url = f"https://api.marketaux.com/v1/news/all?symbols={stock}&filter_entities=true&language=en&api_token=" + api_token
 
