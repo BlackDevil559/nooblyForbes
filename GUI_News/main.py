@@ -1,4 +1,5 @@
 import sys
+import requests
 from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QLineEdit, QScrollArea, QSizePolicy
 from PyQt5.QtGui import QFont, QColor, QPainter, QBrush, QPen
 from PyQt5.QtCore import Qt, QRect
@@ -76,7 +77,10 @@ class MainWindow(QWidget):
         stock_label = QLabel('Stock Name:', self)
         stock_label.setFont(QFont('Poppins', 16))
         stock_label.setStyleSheet("color: #333;")
+
+        # Set default stock name to "Apple"
         self.stock_input = QLineEdit(self)
+        self.stock_input.setText("Apple")  # Default stock name
         self.stock_input.setStyleSheet("""
             QLineEdit {
                 padding: 10px;
@@ -84,10 +88,12 @@ class MainWindow(QWidget):
                 border-radius: 8px;
             }
         """)
+        self.stock_input.textChanged.connect(self.on_stock_name_change)
 
-        get_news_button = QPushButton('Get News', self)
-        get_news_button.setFont(QFont('Poppins', 16))
-        get_news_button.setStyleSheet("""
+        # Get News Button
+        self.get_news_button = QPushButton('Get News', self)
+        self.get_news_button.setFont(QFont('Poppins', 16))
+        self.get_news_button.setStyleSheet("""
             QPushButton {
                 background-color: #007bff;
                 color: white;
@@ -99,7 +105,8 @@ class MainWindow(QWidget):
                 background-color: #0056b3;
             }
         """)
-        get_news_button.clicked.connect(self.fetch_news)
+        self.get_news_button.clicked.connect(self.fetch_news)
+        self.get_news_button.setEnabled(True)  # Enable by default since "Apple" is set
 
         # Layout for title and buttons
         top_layout = QHBoxLayout()
@@ -107,7 +114,7 @@ class MainWindow(QWidget):
         top_layout.addStretch(1)
         top_layout.addWidget(stock_label)
         top_layout.addWidget(self.stock_input)
-        top_layout.addWidget(get_news_button)
+        top_layout.addWidget(self.get_news_button)
         top_layout.addWidget(self.youtube_button)
 
         # Scroll area for displaying news
@@ -130,8 +137,8 @@ class MainWindow(QWidget):
 
         self.setLayout(main_layout)
 
-        # Load initial news
-        self.load_general_news()
+        # Load initial news with the default stock name
+        self.load_general_news("Apple")
 
     def toggle_news_page(self):
         self.is_youtube_news = not self.is_youtube_news
@@ -139,53 +146,59 @@ class MainWindow(QWidget):
             self.load_youtube_news()
             self.youtube_button.setText("General News")
         else:
-            self.load_general_news()
+            # Load general news without filtering when switching back
+            self.load_general_news("Apple")
             self.youtube_button.setText("YouTube News")
 
-    def load_general_news(self):
+    def load_general_news(self, stock_name=None):
         self.clear_news_layout()
-        # Simulated general news data
-        response = {
-            "AlphaVantage": [
-                "3 Balanced Mutual Funds for Superlative Returns - Below, we share with you three top-ranked balanced mutual funds.",
-                "Is Warren Buffett's Berkshire Hathaway a Millionaire-Maker? - Wall Street icon Warren Buffett...",
-                "Should Schwab U.S. Large-Cap ETF ( SCHX ) Be on Your Investing Radar? - Style Box ETF report...",
-            ]
-        }
-        # Add news from response
-        for channel, news_list in response.items():
-            # Add channel label
-            channel_label = QLabel(channel, self)
-            channel_label.setFont(QFont('Poppins', 20, QFont.Bold))
-            channel_label.setStyleSheet("color: #007bff; margin: 20px 0 10px 10px;")
-            self.news_layout.addWidget(channel_label)
 
-            for news_item in news_list:
-                news_box = RoundedBox(stock_name=channel, summary=news_item)
-                self.news_layout.addWidget(news_box)
+        # Use the stock name in the API call if provided
+        try:
+            # Construct the query parameter if a stock name is given
+            url = "http://localhost:8000/get-news"
+            if stock_name:
+                url += f"?stock={stock_name}"
+
+            print(f"Fetching from URL: {url}")  # Debugging statement
+            response = requests.get(url)
+            response.raise_for_status()
+
+            # Debugging: Print the response
+            print(f"Response Status: {response.status_code}")
+            print(f"Response Data: {response.text}")
+
+            news_data = response.json()  # Assuming the response is in JSON format
+
+            if not news_data:
+                print("No news found for this stock.")  # Debugging statement
+
+            for channel, news_list in news_data.items():
+                channel_label = QLabel(channel, self)
+                channel_label.setFont(QFont('Poppins', 20, QFont.Bold))
+                channel_label.setStyleSheet("color: #007bff; margin: 20px 0 10px 10px;")
+                self.news_layout.addWidget(channel_label)
+
+                for news_item in news_list:
+                    news_box = RoundedBox(stock_name=channel, summary=news_item)
+                    self.news_layout.addWidget(news_box)
+        except requests.RequestException as e:
+            print(f"Error fetching general news: {e}")
 
     def load_youtube_news(self):
         self.clear_news_layout()
-        # Simulated YouTube news data
-        youtube_news = [
-            {
-                "stock_name": "Purvankara Limited",
-                "summary": "Purvankara Limited expects strong housing demand...",
-            },
-            {
-                "stock_name": "EaseMyTrip",
-                "summary": "EaseMyTrip is making minority investments in medical tourism...",
-            },
-            {
-                "stock_name": "JSW Steel",
-                "summary": "JSW Steel is expected to benefit from its domestic focus...",
-            }
-        ]
 
-        # Display each stock news
-        for news_item in youtube_news:
-            news_box = RoundedBox(stock_name=news_item["stock_name"], summary=news_item["summary"])
-            self.news_layout.addWidget(news_box)
+        # API call for YouTube news
+        try:
+            response = requests.get("http://localhost:8001/get-summary")
+            response.raise_for_status()
+            youtube_news = response.json()  # Assuming the response is in JSON format
+
+            for news_item in youtube_news:
+                news_box = RoundedBox(stock_name=news_item["stock_name"], summary=news_item["summary"])
+                self.news_layout.addWidget(news_box)
+        except requests.RequestException as e:
+            print(f"Error fetching YouTube news: {e}")
 
     def clear_news_layout(self):
         # Properly clear all items in the news layout
@@ -196,10 +209,15 @@ class MainWindow(QWidget):
                 widget.deleteLater()
 
     def fetch_news(self):
-        # Placeholder for fetching news based on stock name input
-        stock_name = self.stock_input.text()
-        # Here, you would implement the logic to fetch and display news for the given stock name
-        print(f"Fetching news for: {stock_name}")
+        # Get stock name from the input
+        stock_name = self.stock_input.text().strip()
+        # Load general news for the given stock name
+        if stock_name:
+            self.load_general_news(stock_name)
+
+    def on_stock_name_change(self, text):
+        # Enable the 'Get News' button only if there's text in the stock name input
+        self.get_news_button.setEnabled(bool(text.strip()))
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
