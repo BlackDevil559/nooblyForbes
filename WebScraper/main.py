@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException
 import requests
 import json
 import http.client
+from transformers import pipeline
 
 # Stock symbols mapping
 stock_symbols = {
@@ -19,7 +20,7 @@ stock_symbols = {
     "PayPal": "PYPL",
     "Cisco": "CSCO",
     "Salesforce": "CRM",
-    "Reliance":"RELIANCE"
+    "Reliance": "RELIANCE"
 }
 
 # Alpha Vantage News Class
@@ -134,8 +135,34 @@ api_keys = {
     'reuters': '78abf98e82msh71f5049b0b8b1adp1ce3c6jsn3d7f016c0d14'
 }
 
+# Initialize sentiment analysis pipeline
+sentiment_pipeline = pipeline("sentiment-analysis")
+
 # FastAPI app
 app = FastAPI()
+
+# Function to calculate the average sentiment score
+def calculate_average_sentiment(news_list):
+    total_score = 0
+    count = 0
+
+    for news in news_list:
+        # Get the sentiment analysis result for each headline
+        result = sentiment_pipeline(news)
+        sentiment = result[0]['label']
+        score = result[0]['score']
+
+        # Adjust sentiment score based on label (positive = 1, negative = -1)
+        if sentiment == 'NEGATIVE':
+            score = -score
+
+        total_score += score
+        count += 1
+
+    if count == 0:
+        return 0  # Avoid division by zero
+
+    return total_score / count
 
 @app.get("/get-news")
 def get_stock_news(stock: str):
@@ -157,7 +184,22 @@ def get_stock_news(stock: str):
         "Reuters": reuters_news
     }
 
-    return all_news
+    # Add sentiment analysis results
+    sentiment_results = {}
+    for source, news_list in all_news.items():
+        if isinstance(news_list, list) and news_list and "Error" not in news_list[0]:
+            avg_sentiment = calculate_average_sentiment(news_list)
+            sentiment_results[source] = {
+                "news": news_list,
+                "average_sentiment": avg_sentiment
+            }
+        else:
+            sentiment_results[source] = {
+                "news": news_list,
+                "average_sentiment": None
+            }
+
+    return sentiment_results
 
 # To run the API using Uvicorn
 if __name__ == "__main__":
