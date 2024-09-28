@@ -4,6 +4,7 @@ from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QPushButton, QVBoxLay
 from PyQt5.QtGui import QFont, QColor, QPainter, QBrush, QPen
 from PyQt5.QtCore import Qt, QRect
 
+
 class RoundedBox(QWidget):
     def __init__(self, stock_name, summary, parent=None):
         super().__init__(parent)
@@ -12,7 +13,6 @@ class RoundedBox(QWidget):
         self.initUI()
 
     def initUI(self):
-        # Let layout control size
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.setMinimumHeight(150)  # Set a minimum height
         self.setWindowFlags(Qt.FramelessWindowHint)
@@ -40,6 +40,7 @@ class RoundedBox(QWidget):
         # Draw summary
         painter.drawText(QRect(30, 60, self.width() - 300, self.height() - 80), Qt.TextWordWrap, self.summary)
 
+
 class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
@@ -49,7 +50,7 @@ class MainWindow(QWidget):
     def initUI(self):
         self.setWindowTitle('Market Roundup')
         self.setStyleSheet("background-color: #f3f6fb;")
-        self.showMaximized()  
+        self.showMaximized()
 
         # Title Label
         title_label = QLabel('MARKET TODAY', self)
@@ -137,53 +138,13 @@ class MainWindow(QWidget):
 
         self.setLayout(main_layout)
 
-        # Load initial news with the default stock name
-        self.load_general_news("Apple")
-
     def toggle_news_page(self):
         self.is_youtube_news = not self.is_youtube_news
         if self.is_youtube_news:
             self.load_youtube_news()
             self.youtube_button.setText("General News")
         else:
-            # Load general news without filtering when switching back
-            self.load_general_news("Apple")
-            self.youtube_button.setText("YouTube News")
-
-    def load_general_news(self, stock_name=None):
-        self.clear_news_layout()
-
-        # Use the stock name in the API call if provided
-        try:
-            # Construct the query parameter if a stock name is given
-            url = "http://localhost:8000/get-news"
-            if stock_name:
-                url += f"?stock={stock_name}"
-
-            print(f"Fetching from URL: {url}")  # Debugging statement
-            response = requests.get(url)
-            response.raise_for_status()
-
-            # Debugging: Print the response
-            print(f"Response Status: {response.status_code}")
-            print(f"Response Data: {response.text}")
-
-            news_data = response.json()  # Assuming the response is in JSON format
-
-            if not news_data:
-                print("No news found for this stock.")  # Debugging statement
-
-            for channel, news_list in news_data.items():
-                channel_label = QLabel(channel, self)
-                channel_label.setFont(QFont('Poppins', 20, QFont.Bold))
-                channel_label.setStyleSheet("color: #007bff; margin: 20px 0 10px 10px;")
-                self.news_layout.addWidget(channel_label)
-
-                for news_item in news_list:
-                    news_box = RoundedBox(stock_name=channel, summary=news_item)
-                    self.news_layout.addWidget(news_box)
-        except requests.RequestException as e:
-            print(f"Error fetching general news: {e}")
+            self.clear_news_layout()
 
     def load_youtube_news(self):
         self.clear_news_layout()
@@ -193,34 +154,76 @@ class MainWindow(QWidget):
             response = requests.get("http://localhost:8001/get-summary")
             response.raise_for_status()
             youtube_news = response.json()  # Assuming the response is in JSON format
-
+            
+            # Print for debugging
+            print("YouTube News Response:", youtube_news)
+            
+            # Check if the response is a dictionary and wrap it in a list for iteration
+            if isinstance(youtube_news, dict):
+                youtube_news = [youtube_news]
+            
+            # Display the news content
             for news_item in youtube_news:
                 news_box = RoundedBox(stock_name=news_item["stock_name"], summary=news_item["summary"])
                 self.news_layout.addWidget(news_box)
         except requests.RequestException as e:
             print(f"Error fetching YouTube news: {e}")
 
+    def fetch_news(self):
+        stock_name = self.stock_input.text()
+        if not stock_name:
+            return
+
+        # Fetch stock news from your API
+        url = f"http://127.0.0.1:8000/get-news?stock={stock_name}"
+        try:
+            response = requests.get(url)
+            response.raise_for_status()
+            news_data = response.json()
+            print(news_data)
+            self.clear_news_layout()
+
+            # Iterate through all sources in the received data
+            all_news = {
+                "AlphaVantage": news_data.get("AlphaVantage", {}),
+                "CNBC": news_data.get("CNBC", {}),
+                "Marketaux": news_data.get("Marketaux", {}),
+                "NewsAPI": news_data.get("NewsAPI", {}),
+                "Reuters": news_data.get("Reuters", {})
+            }
+
+            # Loop through each source and display news items
+            for source, data in all_news.items():
+                news_list = data.get("news", [])
+                avg_sentiment = data.get("average_sentiment", None)
+
+                if news_list:  # Only display sources with available news
+                    # Add source label with sentiment score
+                    source_label = QLabel(f"{source} (Sentiment: {avg_sentiment:.2f})" if avg_sentiment is not None else source, self)
+                    source_label.setFont(QFont('Poppins', 20, QFont.Bold))
+                    source_label.setStyleSheet("color: #007bff; margin: 20px 0 10px 10px;")
+                    self.news_layout.addWidget(source_label)
+
+                    # Display only the top 5 news items without sentiment score
+                    for news_item in news_list[:5]:  # Slice to get the top 5 news items
+                        summary = news_item
+                        news_box = RoundedBox(stock_name="", summary=summary)
+                        self.news_layout.addWidget(news_box)
+
+        except requests.RequestException as e:
+            print(f"Error fetching news: {e}")
+
+
     def clear_news_layout(self):
         # Properly clear all items in the news layout
         while self.news_layout.count():
-            item = self.news_layout.takeAt(0)
-            widget = item.widget()
-            if widget is not None:
-                widget.deleteLater()
+            child = self.news_layout.takeAt(0)
+            if child.widget():
+                child.widget().deleteLater()
 
-    def fetch_news(self):
-        # Get stock name from the input
-        stock_name = self.stock_input.text().strip()
-        # Load general news for the given stock name
-        if stock_name:
-            self.load_general_news(stock_name)
-
-    def on_stock_name_change(self, text):
-        # Enable the 'Get News' button only if there's text in the stock name input
-        self.get_news_button.setEnabled(bool(text.strip()))
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    main_window = MainWindow()
-    main_window.show()
+    window = MainWindow()
+    window.show()
     sys.exit(app.exec_())
