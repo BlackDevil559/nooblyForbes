@@ -132,7 +132,7 @@ api_keys = {
     'cnbc': '2ea2e9c90emsh023fc8de0ef582ep168d1fjsne981a8300d92',
     'marketaux': 'U4E0cK4uKeLtv1KcnUZlwW3bwr5RuV8y8IVJAEzx',
     'newsapi': 'aadf548393194c0599a75ad3974c9513',
-    'reuters': '78abf98e82msh71f5049b0b8b1adp1ce3c6jsn3d7f016c0d14'
+    'reuters': 'acbd2dccfamsh5ec19e2a1ea0b01p173be7jsne919c6034be6'
 }
 
 # Initialize sentiment analysis pipeline
