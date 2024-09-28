@@ -13,8 +13,6 @@ class RoundedBox(QWidget):
         self.initUI()
 
     def initUI(self):
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        self.setMinimumHeight(150)  # Set a minimum height
         self.setWindowFlags(Qt.FramelessWindowHint)
         self.setAttribute(Qt.WA_TranslucentBackground)
 
@@ -22,7 +20,7 @@ class RoundedBox(QWidget):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
 
-        # Draw white rounded rectangle with shadow
+        # Draw white rounded rectangle
         rect = QRect(10, 10, self.width() - 20, self.height() - 20)
         painter.setPen(Qt.NoPen)
         painter.setBrush(QBrush(QColor(255, 255, 255)))  # White color
@@ -38,7 +36,7 @@ class RoundedBox(QWidget):
         # Set smaller font for summary
         painter.setFont(QFont("Poppins", 14))
         # Draw summary
-        painter.drawText(QRect(30, 60, self.width() - 300, self.height() - 80), Qt.TextWordWrap, self.summary)
+        painter.drawText(QRect(30, 60, self.width() - 60, self.height() - 80), Qt.TextWordWrap, self.summary)
 
 
 class MainWindow(QWidget):
@@ -147,15 +145,9 @@ class MainWindow(QWidget):
         try:
             response = requests.get("http://localhost:8001/get-summary")
             response.raise_for_status()
-            youtube_news = response.json()  # Assuming the response is in JSON format
-            
-            # Print for debugging
+            youtube_news = response.json()
             print("YouTube News Response:", youtube_news)
-            
-            # Check if the response is a dictionary and wrap it in a list for iteration
-            if isinstance(youtube_news, dict):
-                youtube_news = [youtube_news]
-            
+
             # Display the news content
             for news_item in youtube_news:
                 news_box = RoundedBox(stock_name=news_item["stock_name"], summary=news_item["summary"])
@@ -174,7 +166,7 @@ class MainWindow(QWidget):
             response = requests.get(url)
             response.raise_for_status()
             news_data = response.json()
-            print(news_data)
+            # print(news_data)
             self.clear_news_layout()
 
             # Iterate through all sources in the received data
@@ -190,7 +182,7 @@ class MainWindow(QWidget):
             for source, data in all_news.items():
                 news_list = data.get("news", [])
                 avg_sentiment = data.get("average_sentiment", None)
-
+                print("Hello 1",news_list)
                 if news_list:  # Only display sources with available news
                     # Add source label with sentiment score
                     source_label = QLabel(f"{source} (Sentiment: {avg_sentiment:.2f})" if avg_sentiment is not None else source, self)
@@ -198,15 +190,14 @@ class MainWindow(QWidget):
                     source_label.setStyleSheet("color: #007bff; margin: 20px 0 10px 10px;")
                     self.news_layout.addWidget(source_label)
 
-                    # Display only the top 5 news items without sentiment score
-                    for news_item in news_list[:5]:  # Slice to get the top 5 news items
-                        summary = news_item
-                        news_box = RoundedBox(stock_name="", summary=summary)
-                        self.news_layout.addWidget(news_box)
+                    # Combine the top 5 news items into a single summary
+                    combined_summary = "\n\n".join(news_list[:5])
+                    print(combined_summary)
+                    news_box = RoundedBox(stock_name="", summary=combined_summary)
+                    self.news_layout.addWidget(news_box)
 
         except requests.RequestException as e:
             print(f"Error fetching news: {e}")
-
 
     def clear_news_layout(self):
         # Properly clear all items in the news layout
